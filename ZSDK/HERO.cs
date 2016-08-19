@@ -13,6 +13,7 @@ namespace Aerial_HERO.ZSDK
 
         public HERO(RobotModule[] Modules, Gamepad Gamepad)
         {
+            RunLoop = true;
             this.Modules = Modules;
             this.Gamepad = Gamepad;
         }
@@ -20,16 +21,20 @@ namespace Aerial_HERO.ZSDK
         public int Begin()
         {
             int status = 0;
+            if (BeginRun) return status;
             foreach (RobotModule Module in Modules)
                 status |= Module.Begin();
+            BeginRun = true;
             return status;
         }
 
         public int Finish()
         {
             int status = 0;
+            if (FinishRun) return status;
             foreach (RobotModule Module in Modules)
                 status |= Module.Finish();
+            FinishRun = true;
             return status;
         }
 
@@ -51,7 +56,7 @@ namespace Aerial_HERO.ZSDK
         public int Start()
         {
             int status = 0;
-            if (!BeginRun) status |= Begin();
+            status |= Begin();
 
             RunLoop = true;
             while (RunLoop)
@@ -61,7 +66,7 @@ namespace Aerial_HERO.ZSDK
                 System.Threading.Thread.Sleep(10);
             }
 
-            if (!FinishRun) status |= Finish();
+            status |= Finish();
             return status;
         }
     }

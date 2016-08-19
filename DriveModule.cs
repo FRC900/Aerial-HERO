@@ -1,3 +1,4 @@
+using Microsoft.SPOT;
 using System;
 
 namespace Aerial_HERO
@@ -24,6 +25,7 @@ namespace Aerial_HERO
 
         public override Int32 Begin()
         {
+            Debug.Print(ToString() + " [BEGIN]");
             RightSlave.SetControlMode(CTRE.TalonSrx.ControlMode.kFollower);
             RightSlave.Set(RIGHT_TALONSRX_ID);
 
@@ -39,6 +41,7 @@ namespace Aerial_HERO
 
         public override Int32 Finish()
         {
+            Debug.Print(ToString() + " [FINISH]");
             Right.Disable();
             RightSlave.Disable();
             Left.Disable();
