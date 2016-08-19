@@ -1,3 +1,4 @@
+using Microsoft.SPOT;
 using System;
 
 namespace Aerial_HERO
@@ -36,6 +37,7 @@ namespace Aerial_HERO
 
         public override Int32 Begin()
         {
+            Debug.Print(ToString() + " [BEGIN]");
             // TODO: Set and check config for winch and dog.
             Winch.ConfigLimitMode(CTRE.TalonSrx.LimitMode.kLimitMode_SwitchInputsOnly);
             Dog.ConfigLimitMode(CTRE.TalonSrx.LimitMode.kLimitMode_SwitchInputsOnly);
@@ -53,6 +55,7 @@ namespace Aerial_HERO
 
         public override Int32 Finish()
         {
+            Debug.Print(ToString() + " [FINISH]");
             Winch.Disable();
             Dog.Disable();
             return 0;
