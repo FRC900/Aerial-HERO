@@ -1,3 +1,4 @@
+using Microsoft.SPOT;
 using System;
 
 namespace Aerial_HERO.ZSDK
@@ -59,6 +60,7 @@ namespace Aerial_HERO.ZSDK
             status |= Begin();
 
             RunLoop = true;
+            Debug.Print("[HERO] [START]");
             while (RunLoop)
             {
                 FeedWatchDog();

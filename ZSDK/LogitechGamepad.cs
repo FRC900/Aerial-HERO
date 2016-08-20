@@ -11,10 +11,10 @@ namespace Aerial_HERO.ZSDK
         public Single Axis_LY { get { return Axes[1]; } }
 
         public Single Axis_RX { get { return Axes[2]; } }
-        public Single Axis_RY { get { return Axes[3]; } }
+        public Single Axis_RY { get { return Axes[5]; } }
 
-        public Single Axis_Unk1 { get { return Axes[4]; } }
-        public Single Axis_Unk2 { get { return Axes[5]; } }
+        public Single Axis_Unk1 { get { return Axes[3]; } }
+        public Single Axis_Unk2 { get { return Axes[4]; } }
 
         public Boolean Button_X { get { return Buttons[0]; } }
         public Boolean Button_A { get { return Buttons[1]; } }

@@ -13,12 +13,14 @@ namespace Aerial_HERO
             SLOW_MULT = 0.5f,
             MAX_RPM = 1000.0f;
 
+        public const Boolean LEFT_INVT = true;
+
         /* Configure TalonSRX IDs here. */
         public const UInt16
-            RIGHT_TALONSRX_ID = 4,
-            RIGHT_SLAVE_TALONSRX_ID = 3,
-            LEFT_TALONSRX_ID = 2,
-            LEFT_SLAVE_TALONSRX_ID = 1;
+            RIGHT_TALONSRX_ID = 2,
+            RIGHT_SLAVE_TALONSRX_ID = 1,
+            LEFT_TALONSRX_ID = 4,
+            LEFT_SLAVE_TALONSRX_ID = 3;
 
         protected const UInt16
             RIGHT_EncTPR = 360,
@@ -50,14 +52,33 @@ namespace Aerial_HERO
 
         public override Int32 Begin()
         {
+#if DEBUG
             Debug.Print(ToString() + " [BEGIN]");
-
+#endif
             /* Setup Left and Right followers */
             RightSlave.SetControlMode(CTRE.TalonSrx.ControlMode.kFollower);
             RightSlave.Set(RIGHT_TALONSRX_ID);
 
             LeftSlave.SetControlMode(CTRE.TalonSrx.ControlMode.kFollower);
             LeftSlave.Set(LEFT_TALONSRX_ID);
+
+            /* Configure the Left TalonSRX */
+            Left.SetInverted(LEFT_INVT);
+            Left.ConfigLimitMode(CTRE.TalonSrx.LimitMode.kLimitMode_SrxDisableSwitchInputs);
+            Left.ConfigFwdLimitSwitchNormallyOpen(true);
+            Left.ConfigRevLimitSwitchNormallyOpen(true);
+            LeftSlave.ConfigLimitMode(CTRE.TalonSrx.LimitMode.kLimitMode_SrxDisableSwitchInputs);
+            LeftSlave.ConfigFwdLimitSwitchNormallyOpen(true);
+            LeftSlave.ConfigRevLimitSwitchNormallyOpen(true);
+
+            /* Configure the Right TalonSRX */
+            Right.SetInverted(!LEFT_INVT);
+            Right.ConfigLimitMode(CTRE.TalonSrx.LimitMode.kLimitMode_SrxDisableSwitchInputs);
+            Right.ConfigFwdLimitSwitchNormallyOpen(true);
+            Right.ConfigRevLimitSwitchNormallyOpen(true);
+            RightSlave.ConfigLimitMode(CTRE.TalonSrx.LimitMode.kLimitMode_SrxDisableSwitchInputs);
+            RightSlave.ConfigFwdLimitSwitchNormallyOpen(true);
+            RightSlave.ConfigRevLimitSwitchNormallyOpen(true);
 
             if (USE_SPEED_MODE)
             {
@@ -89,7 +110,9 @@ namespace Aerial_HERO
 
         public override Int32 Finish()
         {
+#if DEBUG
             Debug.Print(ToString() + " [FINISH]");
+#endif
             /* Disable the TalonSRXs */
             Right.Disable();
             RightSlave.Disable();
@@ -107,6 +130,11 @@ namespace Aerial_HERO
 
         private void ReadGamepad(ZSDK.Gamepad gamepad, ref Single LeftVal, ref Single RightVal, ref Boolean Slow)
         {
+#if DEBUG
+            for (int idx = 0; idx < gamepad.Axes.Length; ++idx)
+                Debug.Print("[AXIS] [" + idx.ToString() + "] Value: " + gamepad.Axes[idx].ToString());
+#endif
+
             if (gamepad is ZSDK.LogitechGamepad)
             {
                 /* Tank Drive */
@@ -133,6 +161,10 @@ namespace Aerial_HERO
             Boolean Slow = true;
             ReadGamepad(gamepad, ref LeftVal, ref RightVal, ref Slow);
 
+#if DEBUG
+            Debug.Print(ToString() + " [RAW] L:" + LeftVal.ToString() + " - R:" + RightVal.ToString());
+#endif
+
             /* Apply RPM conversion to values. */
             if (USE_SPEED_MODE)
             {
@@ -146,6 +178,10 @@ namespace Aerial_HERO
                 LeftVal *= SLOW_MULT;
                 RightVal *= SLOW_MULT;
             }
+
+#if DEBUG
+            Debug.Print(ToString() + " [SET] L:" + LeftVal.ToString() + " - R:" + RightVal.ToString());
+#endif
 
             Right.Set(RightVal);
             Left.Set(LeftVal);
