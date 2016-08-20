@@ -5,18 +5,43 @@ namespace Aerial_HERO
 {
     internal class DriveModule : ZSDK.RobotModule
     {
-        public const Single SLOW_MULT = 0.5f;
+        public const Boolean USE_SPEED_MODE = false;
+
+        /* By default we drive in 'SLOW' mode. */
+        /* If kSpeed mode is being used configure the max RPM here. */
+        public const Single 
+            SLOW_MULT = 0.5f,
+            MAX_RPM = 1000.0f;
+
+        /* Configure TalonSRX IDs here. */
         public const UInt16
             RIGHT_TALONSRX_ID = 4,
             RIGHT_SLAVE_TALONSRX_ID = 3,
             LEFT_TALONSRX_ID = 2,
             LEFT_SLAVE_TALONSRX_ID = 1;
 
-        protected CTRE.TalonSrx Right , RightSlave;
+        protected const UInt16
+            RIGHT_EncTPR = 360,
+            LEFT_EncTPR = 360;
+
+        /* Configure PID(F) values here. */
+        protected Single
+            RIGHT_P = 1.00f,
+            RIGHT_I = 0.10f,
+            RIGHT_D = 0.01f,
+            RIGHT_F = 0.00f,
+
+            LEFT_P = 1.00f,
+            LEFT_I = 0.10f,
+            LEFT_D = 0.01f,
+            LEFT_F = 0.00f;
+
+        protected CTRE.TalonSrx Right, RightSlave;
         protected CTRE.TalonSrx Left, LeftSlave;
 
         public DriveModule() : base("DRIVE")
         {
+            /* Create our device objects */
             Right = new CTRE.TalonSrx(RIGHT_TALONSRX_ID);
             RightSlave = new CTRE.TalonSrx(RIGHT_SLAVE_TALONSRX_ID);
             Left = new CTRE.TalonSrx(LEFT_TALONSRX_ID);
@@ -26,12 +51,35 @@ namespace Aerial_HERO
         public override Int32 Begin()
         {
             Debug.Print(ToString() + " [BEGIN]");
+
+            /* Setup Left and Right followers */
             RightSlave.SetControlMode(CTRE.TalonSrx.ControlMode.kFollower);
             RightSlave.Set(RIGHT_TALONSRX_ID);
 
             LeftSlave.SetControlMode(CTRE.TalonSrx.ControlMode.kFollower);
             LeftSlave.Set(LEFT_TALONSRX_ID);
 
+            if (USE_SPEED_MODE)
+            {
+                /* Setup Left and Right leaders with PID */
+                Right.SetFeedbackDevice(CTRE.TalonSrx.FeedbackDevice.QuadEncoder);
+                Right.SetSensorDirection(false);
+                Right.ConfigEncoderCodesPerRev(RIGHT_EncTPR);
+
+                Right.SetControlMode(CTRE.TalonSrx.ControlMode.kSpeed);
+                Right.SetPID(0, RIGHT_P, RIGHT_I, RIGHT_D);
+                Right.SetF(0, RIGHT_F);
+
+                Left.SetFeedbackDevice(CTRE.TalonSrx.FeedbackDevice.QuadEncoder);
+                Left.SetSensorDirection(false);
+                Left.ConfigEncoderCodesPerRev(LEFT_EncTPR);
+
+                Left.SetControlMode(CTRE.TalonSrx.ControlMode.kSpeed);
+                Left.SetPID(0, LEFT_P, LEFT_I, LEFT_D);
+                Left.SetF(0, LEFT_F);
+            }
+
+            /* Enable the TalonSRXs */
             Right.Enable();
             RightSlave.Enable();
             Left.Enable();
@@ -42,6 +90,7 @@ namespace Aerial_HERO
         public override Int32 Finish()
         {
             Debug.Print(ToString() + " [FINISH]");
+            /* Disable the TalonSRXs */
             Right.Disable();
             RightSlave.Disable();
             Left.Disable();
@@ -49,41 +98,59 @@ namespace Aerial_HERO
             return 0;
         }
 
+        /// <summary>
+        /// Deadband the control value from the gamepad. ABS Values under 0.10f are made 0.
+        /// </summary>
+        /// <param name="val">ref value to process</param>
         private void Deadband(ref Single val)
         { if (System.Math.Abs(val) < 0.10) val = 0; }
 
-        public override Int32 Run(ZSDK.Gamepad gamepad)
+        private void ReadGamepad(ZSDK.Gamepad gamepad, ref Single LeftVal, ref Single RightVal, ref Boolean Slow)
         {
-            Single LeftY = 0, RightY = 0;
-            Boolean Slow = true;
             if (gamepad is ZSDK.LogitechGamepad)
             {
-                // Tank
-                LeftY = (gamepad as ZSDK.LogitechGamepad).Axis_LY;
-                RightY = (gamepad as ZSDK.LogitechGamepad).Axis_RY;
-                Slow = !((gamepad as ZSDK.LogitechGamepad).Button_LB || (gamepad as ZSDK.LogitechGamepad).Button_RB);
+                /* Tank Drive */
+                LeftVal = (gamepad as ZSDK.LogitechGamepad).Axis_LY;
+                RightVal = (gamepad as ZSDK.LogitechGamepad).Axis_RY;
+                Boolean Fast = (gamepad as ZSDK.LogitechGamepad).Button_LB || (gamepad as ZSDK.LogitechGamepad).Button_RB;
+                Slow = !Fast; // Herp-Derp :P
             }
             else
             {
-                // Arcade
+                /* Arcade fallback */
                 Single Y = gamepad.Axes[1], X = gamepad.Axes[2];
-                LeftY = Y + X;
-                RightY = Y - X;
+                LeftVal = Y + X;
+                RightVal = Y - X;
                 Slow = !gamepad.Buttons[0];
             }
-            Deadband(ref LeftY);
-            Deadband(ref RightY);
+            Deadband(ref LeftVal);
+            Deadband(ref RightVal);
+        }
 
-            // Drive in slow mode.
-            if (Slow)
+        public override Int32 Run(ZSDK.Gamepad gamepad)
+        {
+            Single LeftVal = 0, RightVal = 0;
+            Boolean Slow = true;
+            ReadGamepad(gamepad, ref LeftVal, ref RightVal, ref Slow);
+
+            /* Apply RPM conversion to values. */
+            if (USE_SPEED_MODE)
             {
-                LeftY *= SLOW_MULT;
-                RightY *= SLOW_MULT;
+                LeftVal *= MAX_RPM;
+                RightVal *= MAX_RPM;
             }
 
-            Right.Set(RightY);
-            Left.Set(LeftY);
+            /* Drive in slow mode. */
+            if (Slow)
+            {
+                LeftVal *= SLOW_MULT;
+                RightVal *= SLOW_MULT;
+            }
+
+            Right.Set(RightVal);
+            Left.Set(LeftVal);
             return 0;
         }
     }
 }
+ 

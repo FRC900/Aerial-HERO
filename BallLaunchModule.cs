@@ -6,10 +6,14 @@ namespace Aerial_HERO
     public class BallLaunchModule : ZSDK.RobotModule
     {
         protected const Single
-            WINCH_DIRECTION_START = 1f,
+            WINCH_DIRECTION_START = 0.5f,
             WINCH_DIRECTION_END = 1f,
             DOG_FIRE_DIRECTION = 1f,
             DOG_RESET_DIRECTION = -1f;
+
+        protected const Int64
+            FIRE_WAIT = 2 * TimeSpan.TicksPerSecond,
+            WINCH_START_WAIT = 3 * TimeSpan.TicksPerSecond;
 
         public const UInt16
             WINCH_TALONSRX_ID = 6,
@@ -94,7 +98,7 @@ namespace Aerial_HERO
                     { State = BallLaunchState.Loaded; }
                     else
                     {
-                        Boolean WinchStart = WinchStartTime.Subtract(DateTime.Now).Seconds <= 1;
+                        Boolean WinchStart = WinchStartTime.Subtract(DateTime.Now).Ticks <= WINCH_START_WAIT;
                         Winch.Set(WinchStart ? WINCH_DIRECTION_START : WINCH_DIRECTION_END);
                     }
                     break;
@@ -109,7 +113,8 @@ namespace Aerial_HERO
 
                 case BallLaunchState.Releasing:
                     // Wait for a complete fire.
-                    if (FireTime.Subtract(DateTime.Now).Seconds >= 2)
+                    
+                    if (FireTime.Subtract(DateTime.Now).Ticks >= FIRE_WAIT)
                     { State = BallLaunchState.Released; }
                     break;
             }
